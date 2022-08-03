@@ -52,8 +52,8 @@ print_help() {
 		echo '    Downloads & installs ktlint onto the system.'
 		echo
 		echo '    Options:'
-		echo '      --help     display this summary and exit'
-		echo '      --version  display the script version and exit'
+		echo '      -h, --help     display this summary and exit'
+		echo '      -V, --version  display the script version and exit'
 		echo
 		echo "GitHub repository: <https://github.com/mfederczuk/ktlint-install>"
 	} >&2
@@ -67,11 +67,11 @@ case $# in
 		;;
 	(1)
 		case "$1" in
-			('--help')
+			('-h'|'--help')
 				print_help
 				exit
 				;;
-			('--version')
+			('-V'|'--version')
 				echo '0.1.0' >&2
 				exit
 				;;
