@@ -42,15 +42,20 @@ try_as_root() {
 
 # region args
 
+print_usage() {
+	echo "usage: $(argv0) ( --help | --version | <version> )" >&2
+}
+
 case $# in
 	(0)
 		echo "$(argv0): missing argument: <version>" >&2
+		print_usage
 		exit 3
 		;;
 	(1)
 		case "$1" in
 			('--help')
-				echo "usage: $(argv0) ( --help | --version | <version> )" >&2
+				print_usage
 				exit
 				;;
 			('--version')
@@ -63,9 +68,12 @@ case $# in
 		;;
 	(*)
 		echo "$(argv0): too many arguments: $(($# - 1))" >&2
+		print_usage
 		exit 4
 		;;
 esac
+
+unset -f print_usage
 
 if ! printf '%s' "$requested_version" | grep -Eq '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$'; then
 	echo "The version '$requested_version' doesn't seem correct (MAJOR.MINOR.PATCH)" >&2
