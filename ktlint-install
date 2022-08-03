@@ -43,7 +43,20 @@ try_as_root() {
 # region args
 
 print_usage() {
-	echo "usage: $(argv0) ( --help | --version | <version> )" >&2
+	echo "usage: $(argv0) ( <version> | --help )" >&2
+}
+
+print_help() {
+	print_usage
+	{
+		echo '    Downloads & installs ktlint onto the system.'
+		echo
+		echo '    Options:'
+		echo '      --help     display this summary and exit'
+		echo '      --version  display the script version and exit'
+		echo
+		echo "GitHub repository: <https://github.com/mfederczuk/ktlint-install>"
+	} >&2
 }
 
 case $# in
@@ -55,7 +68,7 @@ case $# in
 	(1)
 		case "$1" in
 			('--help')
-				print_usage
+				print_help
 				exit
 				;;
 			('--version')
@@ -73,7 +86,7 @@ case $# in
 		;;
 esac
 
-unset -f print_usage
+unset -f print_help print_usage
 
 if ! printf '%s' "$requested_version" | grep -Eq '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$'; then
 	echo "The version '$requested_version' doesn't seem correct (MAJOR.MINOR.PATCH)" >&2

@@ -16,6 +16,7 @@ and this project adheres to [**Semantic Versioning v2.0.0**](https://semver.org/
 ### Added ###
 
 * `--version` option
+* `--help` displays a nicer help summary
 
 ## [v0.1.0] - 2022-08-03 ##
 
