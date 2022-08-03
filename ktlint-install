@@ -53,9 +53,26 @@ print_help() {
 		echo
 		echo '    Options:'
 		echo '      -h, --help     display this summary and exit'
-		echo '      -V, --version  display the script version and exit'
+		echo '      -V, --version  display version and legal information and exit'
 		echo
 		echo "GitHub repository: <https://github.com/mfederczuk/ktlint-install>"
+	} >&2
+}
+
+print_version_info() {
+	{
+		echo 'ktlint-install 0.1.0'
+		echo
+		echo 'Copyright (C) 2022 Michael Federczuk'
+		echo
+		echo '    License MPL-2.0: Mozilla Public License 2.0 <https://www.mozilla.org/en-US/MPL/2.0/>'
+		echo '            AND'
+		echo '    License Apache-2.0: Apache License 2.0 <https://www.apache.org/licenses/LICENSE-2.0>'
+		echo
+		echo 'This is free software: you are free to change and redistribute it.'
+		echo 'There is NO WARRANTY, to the extent permitted by law.'
+		echo
+		echo 'Written by Michael Federczuk.'
 	} >&2
 }
 
@@ -72,7 +89,7 @@ case $# in
 				exit
 				;;
 			('-V'|'--version')
-				echo '0.1.0' >&2
+				print_version_info
 				exit
 				;;
 		esac
@@ -86,7 +103,7 @@ case $# in
 		;;
 esac
 
-unset -f print_help print_usage
+unset -f print_version_info print_help print_usage
 
 if ! printf '%s' "$requested_version" | grep -Eq '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$'; then
 	echo "The version '$requested_version' doesn't seem correct (MAJOR.MINOR.PATCH)" >&2
