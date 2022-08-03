@@ -14,6 +14,19 @@
 
 [ktlint]: https://github.com/pinterest/ktlint
 
+## Usage ##
+
+Simply execute the script with the version name of `ktlint` that you want to install:
+
+```sh
+ktlint-install 0.46.1
+```
+
+## Download & Installation ##
+
+Download the [`ktlint-install`](ktlint-install) file and optionally move it into a directory that is inside your
+`PATH` environment variable.
+
 ## Contributing ##
 
 Read through the [Contribution Guidelines](CONTRIBUTING.md) if you want to contribute to this project.
