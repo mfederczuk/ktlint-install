@@ -19,6 +19,10 @@ and this project adheres to [**Semantic Versioning v2.0.0**](https://semver.org/
 * `--help` displays a nicer help summary
 * `-h` option; same as `--help`
 
+### Fixed ###
+
+* Typo fix when given a weird version name
+
 ## [v0.1.0] - 2022-08-03 ##
 
 [v0.1.0]: https://github.com/mfederczuk/ktlint-install/releases/tag/v0.1.0

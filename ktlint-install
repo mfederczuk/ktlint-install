@@ -107,7 +107,7 @@ unset -f print_version_info print_help print_usage
 
 if ! printf '%s' "$requested_version" | grep -Eq '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$'; then
 	echo "The version '$requested_version' doesn't seem correct (MAJOR.MINOR.PATCH)" >&2
-	printf 'Do you want to contine? [y/N] ' >&2
+	printf 'Do you want to continue? [y/N] ' >&2
 
 	read -r ans
 	case "$ans" in
