@@ -40,6 +40,175 @@ try_as_root() {
 	fi
 }
 
+# region args
+
+print_usage() {
+	echo "usage: $(argv0) ( <version> | --help )" >&2
+}
+
+print_help() {
+	print_usage
+	{
+		echo '    Downloads & installs ktlint onto the system.'
+		echo
+		echo '    Options:'
+		echo "          --dry-run  don't download and install anything"
+		echo '      -h, --help     display this summary and exit'
+		echo '      -V, --version  display version and legal information and exit'
+		echo
+		echo "GitHub repository: <https://github.com/mfederczuk/ktlint-install>"
+	} >&2
+}
+
+print_version_info() {
+	{
+		echo 'ktlint-install 0.1.0'
+		echo
+		echo 'Copyright (C) 2022 Michael Federczuk'
+		echo
+		echo '    License MPL-2.0: Mozilla Public License 2.0 <https://www.mozilla.org/en-US/MPL/2.0/>'
+		echo '            AND'
+		echo '    License Apache-2.0: Apache License 2.0 <https://www.apache.org/licenses/LICENSE-2.0>'
+		echo
+		echo 'This is free software: you are free to change and redistribute it.'
+		echo 'There is NO WARRANTY, to the extent permitted by law.'
+		echo
+		echo 'Written by Michael Federczuk.'
+	} >&2
+}
+
+opt_dry_run=false
+
+excess_argc=0
+first_invalid_opt=''
+process_opts=true
+
+for arg in "$@"; do
+	if $process_opts && [ "$arg" = '--' ]; then
+		process_opts=false
+		continue
+	fi
+
+	if $process_opts && printf '%s' "$arg" | grep -Eq '^--'; then
+		opt_word="${arg#--}"
+
+		case "$opt_word" in
+			('help')
+				print_help
+				exit
+				;;
+			('version')
+				print_version_info
+				exit
+				;;
+			('dry-run')
+				opt_dry_run=true
+				;;
+			(*)
+				if [ -z "$first_invalid_opt" ]; then
+					first_invalid_opt="--$opt_word"
+				fi
+				;;
+		esac
+
+		unset -v opt_word
+		continue
+	fi
+
+	if $process_opts && printf '%s' "$arg" | grep -Eq '^-'; then
+		opt_chars="${arg#-}"
+
+		while [ ${#opt_chars} -gt 0 ]; do
+			opt_char="${opt_chars%"${opt_chars#?}"}"
+
+			case "$opt_char" in
+				('h')
+					print_help
+					exit
+					;;
+				('V')
+					print_version_info
+					exit
+					;;
+				(*)
+					if [ -z "$first_invalid_opt" ]; then
+						first_invalid_opt="-$opt_char"
+					fi
+					;;
+			esac
+
+			opt_chars="${opt_chars#"$opt_char"}"
+			unset -v opt_char
+		done
+
+		unset -v opt_chars
+		continue
+	fi
+
+	if [ "${requested_version-not_set}" = 'not_set' ]; then
+		requested_version="$arg"
+		continue
+	fi
+
+	excess_argc=$((excess_argc + 1))
+done; unset -v arg
+
+readonly requested_version opt_dry_run
+unset -v process_opts
+unset -f print_version_info print_help
+
+if [ -n "$first_invalid_opt" ]; then
+	echo "$(argv0): $first_invalid_opt: invalid option" >&2
+	print_usage
+	exit 5
+fi
+unset -v first_invalid_opt
+
+if [ "${requested_version-not_set}" = 'not_set' ]; then
+	echo "$(argv0): missing argument: <version>" >&2
+	print_usage
+	exit 3
+fi
+
+if [ -z "$requested_version" ]; then
+	if [ $excess_argc -eq 0 ]; then
+		echo "$(argv0): argument must not be empty" >&2
+	else
+		echo "$(argv0): argument 1: must not be empty" >&2
+	fi
+	print_usage
+	exit 9
+fi
+
+if [ $excess_argc -gt 0 ]; then
+	echo "$(argv0): too many arguments: $excess_argc" >&2
+	print_usage
+	exit 4
+fi
+
+unset -v excess_argc
+unset -f print_usage
+
+if ! printf '%s' "$requested_version" | grep -Eq '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$'; then
+	echo "The version '$requested_version' doesn't seem correct (MAJOR.MINOR.PATCH)" >&2
+	printf 'Do you want to continue? [y/N] ' >&2
+
+	read -r ans
+	case "$ans" in
+		(['yY']*)
+			# continue
+			;;
+		(*)
+			echo 'Aborted.' >&2
+			exit 32
+			;;
+	esac
+
+	unset -v ans
+fi
+
+# endregion
+
 # region check download commands
 
 wget_available=$(if command_exists wget; then echo true; else echo false; fi)
@@ -67,50 +236,17 @@ esac
 
 # endregion
 
-# region args
-
-case $# in
-	(0)
-		echo "$(argv0): missing argument: <version>" >&2
-		exit 3
-		;;
-	(1)
-		if [ "$1" = '--help' ]; then
-			echo "usage: $(argv0) ( --help | <version> )" >&2
-			exit
-		fi
-
-		readonly requested_version="$1"
-		;;
-	(*)
-		echo "$(argv0): too many arguments: $(($# - 1))" >&2
-		exit 4
-		;;
-esac
-
-if ! printf '%s' "$requested_version" | grep -Eq '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$'; then
-	echo "The version '$requested_version' doesn't seem correct (MAJOR.MINOR.PATCH)" >&2
-	printf 'Do you want to contine? [y/N] ' >&2
-
-	read -r ans
-	case "$ans" in
-		(['yY']*)
-			# continue
-			;;
-		(*)
-			echo 'Aborted.' >&2
-			exit 32
-			;;
-	esac
-
-	unset -v ans
-fi
-
-# endregion
-
 # region downloading and moving binary into correct position
 
-tmp_file="$(if [ ! -e 'ktlint' ]; then echo 'ktlint'; else mktemp_portable 'ktlint.'; fi)"
+tmp_file='ktlint'
+if [ -e "$tmp_file" ]; then
+	if ! $opt_dry_run; then
+		tmp_file="$(mktemp_portable "$tmp_file.")"
+	else
+		echo 'ktlint exists; would create a temporary file to download to' >&2
+		tmp_file='[[temporary_file]]'
+	fi
+fi
 readonly tmp_file
 
 target_file="$(command -v ktlint || echo '/usr/local/bin/ktlint')"
@@ -124,14 +260,22 @@ fi
 target_parent_dir="$(dirname "$target_file")"
 readonly target_parent_dir
 
-download_file "https://github.com/pinterest/ktlint/releases/download/$requested_version/ktlint" "$tmp_file"
-chmod +x "$tmp_file"
+if ! $opt_dry_run; then
+	download_file "https://github.com/pinterest/ktlint/releases/download/$requested_version/ktlint" "$tmp_file"
+	chmod +x "$tmp_file"
+else
+	echo "would download 'https://github.com/pinterest/ktlint/releases/download/$requested_version/ktlint' into '$tmp_file'"
+fi
 
 if [ -w "$target_parent_dir" ]; then
 	# we don't need to check for write access to the target file here, since replacing an entire file (changing
 	# the inode) only requires directory write access
 
-	mv -f "$tmp_file" "$target_file"
+	if ! $opt_dry_run; then
+		mv -f "$tmp_file" "$target_file"
+	else
+		echo "would move '$tmp_file' to '$target_file'" >&2
+	fi
 	exit
 fi
 
@@ -141,13 +285,21 @@ if [ -w "$target_file" ]; then
 	# which counts as modifying the directory -- which we don't have access to, so we need to use `dd` to write to the
 	# target file, without modyfing the directory
 
-	dd if="$tmp_file" of="$target_file"
+	if ! $opt_dry_run; then
+		dd if="$tmp_file" of="$target_file"
+	else
+		echo "would write '$tmp_file' to '$target_file'" >&2
+	fi
 	exit
 fi
 
 # last ditch effort is trying to execute as root
 # if neither `doas` or `sudo` exist, it'll execute the command with neither - which is *very* high likely going to fail,
 # but at least `mv` should print a proper error
-try_as_root mv "$tmp_file" "$target_file"
+if ! $opt_dry_run; then
+	try_as_root mv "$tmp_file" "$target_file"
+else
+	echo "would try to move '$tmp_file' to '$target_file' as root" >&2
+fi
 
 # endregion
