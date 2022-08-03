@@ -1,0 +1,153 @@
+#!/bin/sh
+# -*- sh -*-
+# vim: set syntax=sh
+# code: language=shellscript
+
+# Copyright (c) 2022 Michael Federczuk
+# SPDX-License-Identifier: MPL-2.0 AND Apache-2.0
+
+set -o errexit
+set -o nounset
+
+# enabling POSIX-compliant behavior for GNU programs
+export POSIXLY_CORRECT=yes POSIX_ME_HARDER=yes
+
+command_exists() {
+	command -v "$1" > '/dev/null'
+}
+
+argv0() {
+	if printf '%s' "$0" | grep -Eq '^/.+$'; then
+		printf '%s' "$(basename "$0")"
+	else
+		printf '%s' "$0"
+	fi
+}
+
+mktemp_portable() {
+	# i was kinda shook that mktemp isn't part of any POSIX specification
+	printf 'mkstemp(%s)' "$1" | m4
+}
+
+try_as_root() {
+	if command_exists doas; then
+		# preferring `doas` because it's leaner and meaner and better suited for single-user systems than `sudo`
+		doas "$@"
+	elif command_exists sudo; then
+		sudo "$@"
+	else
+		"$@"
+	fi
+}
+
+# region check download commands
+
+wget_available=$(if command_exists wget; then echo true; else echo false; fi)
+readonly wget_available
+
+curl_available=$(if command_exists curl; then echo true; else echo false; fi)
+readonly curl_available
+
+case $wget_available,$curl_available in
+	('true,'*) # preferring `wget` over `curl` for no particular reason
+		download_file() {
+			wget -O "$2" -- "$1"
+		}
+		;;
+	(*',true')
+		download_file() {
+			curl -o "$2" -- "$1"
+		}
+		;;
+	('false,false')
+		echo "$(argv0): wget or curl missing" >&2
+		exit 48
+		;;
+esac
+
+# endregion
+
+# region args
+
+case $# in
+	(0)
+		echo "$(argv0): missing argument: <version>" >&2
+		exit 3
+		;;
+	(1)
+		if [ "$1" = '--help' ]; then
+			echo "usage: $(argv0) ( --help | <version> )" >&2
+			exit
+		fi
+
+		readonly requested_version="$1"
+		;;
+	(*)
+		echo "$(argv0): too many arguments: $(($# - 1))" >&2
+		exit 4
+		;;
+esac
+
+if ! printf '%s' "$requested_version" | grep -Eq '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$'; then
+	echo "The version '$requested_version' doesn't seem correct (MAJOR.MINOR.PATCH)" >&2
+	printf 'Do you want to contine? [y/N] ' >&2
+
+	read -r ans
+	case "$ans" in
+		(['yY']*)
+			# continue
+			;;
+		(*)
+			echo 'Aborted.' >&2
+			exit 32
+			;;
+	esac
+
+	unset -v ans
+fi
+
+# endregion
+
+# region downloading and moving binary into correct position
+
+tmp_file="$(if [ ! -e 'ktlint' ]; then echo 'ktlint'; else mktemp_portable 'ktlint.'; fi)"
+readonly tmp_file
+
+target_file="$(command -v ktlint || echo '/usr/local/bin/ktlint')"
+readonly target_file
+
+if [ -e "$target_file" ] && [ ! -f "$target_file" ]; then
+	echo "$(argv0): $target_file: not a regular file" >&2
+	exit 26
+fi
+
+target_parent_dir="$(dirname "$target_file")"
+readonly target_parent_dir
+
+download_file "https://github.com/pinterest/ktlint/releases/download/$requested_version/ktlint" "$tmp_file"
+chmod +x "$tmp_file"
+
+if [ -w "$target_parent_dir" ]; then
+	# we don't need to check for write access to the target file here, since replacing an entire file (changing
+	# the inode) only requires directory write access
+
+	mv -f "$tmp_file" "$target_file"
+	exit
+fi
+
+if [ -w "$target_file" ]; then
+	# even though the current user has write access to the target file, the user DOESN'T have write access to the parent
+	# directory of the target file, which means that using `mv` is not possible, since it's replacing the entire file,
+	# which counts as modifying the directory -- which we don't have access to, so we need to use `dd` to write to the
+	# target file, without modyfing the directory
+
+	dd if="$tmp_file" of="$target_file"
+	exit
+fi
+
+# last ditch effort is trying to execute as root
+# if neither `doas` or `sudo` exist, it'll execute the command with neither - which is *very* high likely going to fail,
+# but at least `mv` should print a proper error
+try_as_root mv "$tmp_file" "$target_file"
+
+# endregion
