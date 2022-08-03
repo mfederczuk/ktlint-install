@@ -48,10 +48,16 @@ case $# in
 		exit 3
 		;;
 	(1)
-		if [ "$1" = '--help' ]; then
-			echo "usage: $(argv0) ( --help | <version> )" >&2
-			exit
-		fi
+		case "$1" in
+			('--help')
+				echo "usage: $(argv0) ( --help | --version | <version> )" >&2
+				exit
+				;;
+			('--version')
+				echo '0.1.0' >&2
+				exit
+				;;
+		esac
 
 		readonly requested_version="$1"
 		;;
