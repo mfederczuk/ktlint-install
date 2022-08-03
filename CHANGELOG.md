@@ -15,6 +15,7 @@ and this project adheres to [**Semantic Versioning v2.0.0**](https://semver.org/
 
 ### Added ###
 
+* proper arguments/options parsing
 * `-V`, `--version` option
 * `--help` displays a nicer help summary
 * `-h` option; same as `--help`

@@ -76,34 +76,112 @@ print_version_info() {
 	} >&2
 }
 
-case $# in
-	(0)
-		echo "$(argv0): missing argument: <version>" >&2
-		print_usage
-		exit 3
-		;;
-	(1)
-		case "$1" in
-			('-h'|'--help')
+excess_argc=0
+first_invalid_opt=''
+process_opts=true
+
+for arg in "$@"; do
+	if $process_opts && [ "$arg" = '--' ]; then
+		process_opts=false
+		continue
+	fi
+
+	if $process_opts && printf '%s' "$arg" | grep -Eq '^--'; then
+		opt_word="${arg#--}"
+
+		case "$opt_word" in
+			('help')
 				print_help
 				exit
 				;;
-			('-V'|'--version')
+			('version')
 				print_version_info
 				exit
 				;;
+			(*)
+				if [ -z "$first_invalid_opt" ]; then
+					first_invalid_opt="--$opt_word"
+				fi
+				;;
 		esac
 
-		readonly requested_version="$1"
-		;;
-	(*)
-		echo "$(argv0): too many arguments: $(($# - 1))" >&2
-		print_usage
-		exit 4
-		;;
-esac
+		unset -v opt_word
+		continue
+	fi
 
-unset -f print_version_info print_help print_usage
+	if $process_opts && printf '%s' "$arg" | grep -Eq '^-'; then
+		opt_chars="${arg#-}"
+
+		while [ ${#opt_chars} -gt 0 ]; do
+			opt_char="${opt_chars%"${opt_chars#?}"}"
+
+			case "$opt_char" in
+				('h')
+					print_help
+					exit
+					;;
+				('V')
+					print_version_info
+					exit
+					;;
+				(*)
+					if [ -z "$first_invalid_opt" ]; then
+						first_invalid_opt="-$opt_char"
+					fi
+					;;
+			esac
+
+			opt_chars="${opt_chars#"$opt_char"}"
+			unset -v opt_char
+		done
+
+		unset -v opt_chars
+		continue
+	fi
+
+	if [ "${requested_version-not_set}" = 'not_set' ]; then
+		requested_version="$arg"
+		continue
+	fi
+
+	excess_argc=$((excess_argc + 1))
+done; unset -v arg
+
+readonly requested_version
+unset -v process_opts
+unset -f print_version_info print_help
+
+if [ -n "$first_invalid_opt" ]; then
+	echo "$(argv0): $first_invalid_opt: invalid option" >&2
+	print_usage
+	exit 5
+fi
+unset -v first_invalid_opt
+
+if [ "${requested_version-not_set}" = 'not_set' ]; then
+	echo "$(argv0): missing argument: <version>" >&2
+	print_usage
+	exit 3
+fi
+
+if [ -z "$requested_version" ]; then
+	if [ $excess_argc -eq 0 ]; then
+		echo "$(argv0): argument must not be empty" >&2
+	else
+		echo "$(argv0): argument 1: must not be empty" >&2
+	fi
+	print_usage
+	exit 9
+fi
+
+if [ $excess_argc -gt 0 ]; then
+	echo "$(argv0): too many arguments: $excess_argc" >&2
+	print_usage
+	exit 4
+fi
+
+unset -v excess_argc
+unset -f print_usage
 
 if ! printf '%s' "$requested_version" | grep -Eq '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$'; then
 	echo "The version '$requested_version' doesn't seem correct (MAJOR.MINOR.PATCH)" >&2
