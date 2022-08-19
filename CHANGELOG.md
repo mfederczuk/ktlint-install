@@ -13,6 +13,10 @@ and this project adheres to [**Semantic Versioning v2.0.0**](https://semver.org/
 
 ## Unreleased ##
 
+### Added ###
+
+* feature to download latest release by giving "`latest`" as argument
+
 ### Fixed ###
 
 * using `curl` to download wouldn't actually download anything because `curl` doesn't follow redirection by default
