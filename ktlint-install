@@ -266,11 +266,13 @@ fi
 target_parent_dir="$(dirname "$target_file")"
 readonly target_parent_dir
 
+readonly source_url="https://github.com/pinterest/ktlint/releases/download/$requested_version/ktlint"
+
 if ! $opt_dry_run; then
-	download_file "https://github.com/pinterest/ktlint/releases/download/$requested_version/ktlint" "$tmp_file"
+	download_file "$source_url" "$tmp_file"
 	chmod +x "$tmp_file"
 else
-	echo "would download 'https://github.com/pinterest/ktlint/releases/download/$requested_version/ktlint' into '$tmp_file'"
+	echo "would download '$source_url' into '$tmp_file'"
 fi
 
 if [ -w "$target_parent_dir" ]; then
