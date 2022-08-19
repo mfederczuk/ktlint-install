@@ -16,8 +16,14 @@ command_exists() {
 	command -v "$1" > '/dev/null'
 }
 
+starts_with() {
+	# not using `grep` because it works line-by-line; if the prefix substring ($2) would appear after a newline in the
+	# middle of the base string ($1), grep would falsely match
+	test "${1#"$2"}" != "$1"
+}
+
 argv0() {
-	if printf '%s' "$0" | grep -Eq '^/.+$'; then
+	if [ "${0#/}" != "$0" ]; then
 		printf '%s' "$(basename "$0")"
 	else
 		printf '%s' "$0"
