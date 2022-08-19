@@ -49,7 +49,7 @@ try_as_root() {
 # region args
 
 print_usage() {
-	echo "usage: $(argv0) ( <version> | --help )" >&2
+	echo "usage: $(argv0) ( <version> | latest | --help )" >&2
 }
 
 print_help() {
@@ -151,15 +151,20 @@ for arg in "$@"; do
 		continue
 	fi
 
-	if [ "${requested_version-not_set}" = 'not_set' ]; then
-		requested_version="$arg"
+	if [ "${requested_version_spec-not_set}" = 'not_set' ]; then
+		if [ "$arg" != 'latest' ]; then
+			requested_version_spec="exact:$arg"
+		else
+			requested_version_spec="latest:"
+		fi
+
 		continue
 	fi
 
 	excess_argc=$((excess_argc + 1))
 done; unset -v arg
 
-readonly requested_version opt_dry_run
+readonly requested_version_spec opt_dry_run
 unset -v process_opts
 unset -f print_version_info print_help
 
@@ -170,13 +175,13 @@ if [ -n "$first_invalid_opt" ]; then
 fi
 unset -v first_invalid_opt
 
-if [ "${requested_version-not_set}" = 'not_set' ]; then
-	echo "$(argv0): missing argument: <version>" >&2
+if [ "${requested_version_spec-not_set}" = 'not_set' ]; then
+	echo "$(argv0): missing argument: ( <version> | latest )" >&2
 	print_usage
 	exit 3
 fi
 
-if [ -z "$requested_version" ]; then
+if [ -z "${requested_version_spec%exact:}" ]; then
 	if [ $excess_argc -eq 0 ]; then
 		echo "$(argv0): argument must not be empty" >&2
 	else
@@ -195,8 +200,10 @@ fi
 unset -v excess_argc
 unset -f print_usage
 
-if ! printf '%s' "$requested_version" | grep -Eq '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$'; then
-	echo "The version '$requested_version' doesn't seem correct (MAJOR.MINOR.PATCH)" >&2
+if starts_with "$requested_version_spec" 'exact:' &&
+   ! printf '%s' "${requested_version_spec#exact:}" | grep -Eq '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$'; then
+
+	echo "The version '${requested_version_spec#exact:}' doesn't seem correct (MAJOR.MINOR.PATCH)" >&2
 	printf 'Do you want to continue? [y/N] ' >&2
 
 	read -r ans
@@ -242,6 +249,44 @@ esac
 
 # endregion
 
+# region determine source URL
+
+if starts_with "$requested_version_spec" 'exact:'; then
+	version_to_install="${requested_version_spec#exact:}"
+elif starts_with "$requested_version_spec" 'latest:'; then
+	if ! $curl_available; then
+		echo "$(argv0): curl: program missing" >&2
+		exit 27
+	fi
+
+	response="$(curl -sSX HEAD -w '%{http_code}\n%{redirect_url}' 'https://github.com/pinterest/ktlint/releases/latest')"
+
+	response_code="$(printf '%s' "$response" | head -n1)"
+	if ! printf '%s' "$response_code" | grep -Eq '^3[0-9][0-9]$'; then
+		echo "$(argv0): could not determine the latest ktlint version" >&2
+		exit 49
+	fi
+	unset -v response_code
+
+	location_url="$(printf '%s' "$response" | tail -n1)"
+	version_to_install="$(printf '%s' "$location_url" | sed s%'^https://github.com/[a-zA-Z0-9_-][a-zA-Z0-9_-]*/ktlint/releases/tag/\([^/][^/]*\)$'%'\1'%)"
+
+	if [ -z "$version_to_install" ]; then
+		echo "$(argv0): could not determine the latest ktlint version" >&2
+		exit 49
+	fi
+
+	unset -v location_url response
+else
+	echo "$(argv0): emergency stop: wrong format for 'requested_version_spec' variable: $requested_version_spec" >&2
+	exit 123
+fi
+
+readonly source_url="https://github.com/pinterest/ktlint/releases/download/$version_to_install/ktlint"
+unset -v version_to_install
+
+# endregion
+
 # region downloading and moving binary into correct position
 
 tmp_file='ktlint'
@@ -265,8 +310,6 @@ fi
 
 target_parent_dir="$(dirname "$target_file")"
 readonly target_parent_dir
-
-readonly source_url="https://github.com/pinterest/ktlint/releases/download/$requested_version/ktlint"
 
 if ! $opt_dry_run; then
 	download_file "$source_url" "$tmp_file"

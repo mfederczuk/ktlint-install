@@ -24,6 +24,12 @@ Simply execute the script with the version name of `ktlint` that you want to ins
 ktlint-install 0.46.1
 ```
 
+... or give the argument "`latest`" to install the latest release of `ktlint`.
+
+```sh
+ktlint-install latest
+```
+
 ## Download & Installation ##
 
 Download the [`ktlint-install`](ktlint-install) file and optionally move it into a directory that is inside your
