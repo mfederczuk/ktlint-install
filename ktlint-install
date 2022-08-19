@@ -225,7 +225,7 @@ case $wget_available,$curl_available in
 		;;
 	(*',true')
 		download_file() {
-			curl -o "$2" -- "$1"
+			curl -Lo "$2" -- "$1"
 		}
 		;;
 	('false,false')
