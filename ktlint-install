@@ -58,9 +58,11 @@ print_help() {
 		echo '    Downloads & installs ktlint onto the system.'
 		echo
 		echo '    Options:'
-		echo "          --dry-run  don't download and install anything"
-		echo '      -h, --help     display this summary and exit'
-		echo '      -V, --version  display version and legal information and exit'
+		echo "          --dry-run      don't download and install anything"
+		echo '          --prefer-curl  prefer using curl as downloading command'
+		echo '          --prefer-wget  prefer using Wget as downloading command (default)'
+		echo '      -h, --help         display this summary and exit'
+		echo '      -V, --version      display version and legal information and exit'
 		echo
 		echo "GitHub repository: <https://github.com/mfederczuk/ktlint-install>"
 	} >&2
@@ -84,6 +86,7 @@ print_version_info() {
 }
 
 opt_dry_run=false
+opt_preferred_dl_cmd='wget'
 
 excess_argc=0
 first_invalid_opt=''
@@ -109,6 +112,12 @@ for arg in "$@"; do
 				;;
 			('dry-run')
 				opt_dry_run=true
+				;;
+			('prefer-curl')
+				opt_preferred_dl_cmd='curl'
+				;;
+			('prefer-wget')
+				opt_preferred_dl_cmd='wget'
 				;;
 			(*)
 				if [ -z "$first_invalid_opt" ]; then
@@ -164,7 +173,7 @@ for arg in "$@"; do
 	excess_argc=$((excess_argc + 1))
 done; unset -v arg
 
-readonly requested_version_spec opt_dry_run
+readonly requested_version_spec opt_dry_run opt_preferred_dl_cmd
 unset -v process_opts
 unset -f print_version_info print_help
 
@@ -224,26 +233,40 @@ fi
 
 # region check download commands
 
-wget_available=$(if command_exists wget; then echo true; else echo false; fi)
-readonly wget_available
+available_dl_cmds=''
 
-curl_available=$(if command_exists curl; then echo true; else echo false; fi)
-readonly curl_available
+if command_exists wget; then available_dl_cmds="$available_dl_cmds(wget)"; fi
+if command_exists curl; then available_dl_cmds="$available_dl_cmds(curl)"; fi
 
-case $wget_available,$curl_available in
-	('true,'*) # preferring `wget` over `curl` for no particular reason
+readonly available_dl_cmds
+
+if [ -z "$available_dl_cmds" ]; then
+	echo "$(argv0): wget or curl missing" >&2
+	exit 48
+fi
+
+
+case "$available_dl_cmds" in
+	(*"($opt_preferred_dl_cmd)"*)
+		dl_cmd="$opt_preferred_dl_cmd"
+		;;
+	(*'(wget)'*) dl_cmd='wget' ;;
+	(*'(curl)'*) dl_cmd='curl' ;;
+esac
+
+readonly dl_cmd
+
+
+case "$dl_cmd" in
+	('wget')
 		download_file() {
 			wget -O "$2" -- "$1"
 		}
 		;;
-	(*',true')
+	('curl')
 		download_file() {
 			curl -Lo "$2" -- "$1"
 		}
-		;;
-	('false,false')
-		echo "$(argv0): wget or curl missing" >&2
-		exit 48
 		;;
 esac
 
@@ -254,10 +277,15 @@ esac
 if starts_with "$requested_version_spec" 'exact:'; then
 	version_to_install="${requested_version_spec#exact:}"
 elif starts_with "$requested_version_spec" 'latest:'; then
-	if ! $curl_available; then
-		echo "$(argv0): curl: program missing" >&2
-		exit 27
-	fi
+	case "$available_dl_cmds" in
+		(*'(curl)'*)
+			# ok
+			;;
+		(*)
+			echo "$(argv0): curl: program missing" >&2
+			exit 27
+			;;
+	esac
 
 	response="$(curl -sSX HEAD -w '%{http_code}\n%{redirect_url}' 'https://github.com/pinterest/ktlint/releases/latest')"
 
@@ -315,7 +343,7 @@ if ! $opt_dry_run; then
 	download_file "$source_url" "$tmp_file"
 	chmod +x "$tmp_file"
 else
-	echo "would download '$source_url' into '$tmp_file'"
+	echo "would use '$dl_cmd' to download '$source_url' into '$tmp_file'"
 fi
 
 if [ -w "$target_parent_dir" ]; then
