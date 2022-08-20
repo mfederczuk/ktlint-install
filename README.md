@@ -26,7 +26,7 @@ for it to get installed in is `/usr/local/bin`.
 Simply execute the script with the version name of `ktlint` that you want to install:
 
 ```sh
-ktlint-install 0.46.1
+ktlint-install 0.47.0
 ```
 
 ... or give the argument "`latest`" to install the latest release of `ktlint`.
