@@ -18,6 +18,11 @@ and this project adheres to [**Semantic Versioning v2.0.0**](https://semver.org/
 * feature to download latest release by giving "`latest`" as argument
 * `--prefer-curl` and `--prefer-wget` options
 
+### Changed ###
+
+* default installation directory is `$HOME/.local/bin` if the `$HOME/.local` directory exists, otherwise it is
+  `/usr/local/bin`
+
 ### Fixed ###
 
 * using `curl` to download wouldn't actually download anything because `curl` doesn't follow redirection by default
