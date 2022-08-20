@@ -329,7 +329,7 @@ if [ -e "$tmp_file" ]; then
 	if ! $opt_dry_run; then
 		tmp_file="$(mktemp_portable "$tmp_file.")"
 	else
-		log 'ktlint exists; would create a temporary file to download to'
+		log "file 'ktlint' exists; would create a temporary file to download to"
 		tmp_file='[[temporary_file]]'
 	fi
 fi
@@ -350,7 +350,11 @@ if ! $opt_dry_run; then
 	download_file "$source_url" "$tmp_file"
 	chmod +x "$tmp_file"
 else
-	log "would use '$dl_cmd' to download '$source_url' into '$tmp_file'"
+	if [ "$tmp_file" != '[[temporary_file]]' ]; then
+		log "would use '$dl_cmd' to download '$source_url' into '$tmp_file'"
+	else
+		log "would use '$dl_cmd' to download '$source_url' into the temporary file"
+	fi
 fi
 
 if [ -w "$target_parent_dir" ]; then
@@ -360,7 +364,11 @@ if [ -w "$target_parent_dir" ]; then
 	if ! $opt_dry_run; then
 		mv -f "$tmp_file" "$target_file"
 	else
-		log "would move '$tmp_file' to '$target_file'"
+		if [ "$tmp_file" != '[[temporary_file]]' ]; then
+			log "would move '$tmp_file' to '$target_file'"
+		else
+			log "would move the temporary file to '$target_file'"
+		fi
 	fi
 	exit
 fi
@@ -374,7 +382,11 @@ if [ -w "$target_file" ]; then
 	if ! $opt_dry_run; then
 		dd if="$tmp_file" of="$target_file"
 	else
-		log "would write '$tmp_file' to '$target_file'"
+		if [ "$tmp_file" != '[[temporary_file]]' ]; then
+			log "would write '$tmp_file' to '$target_file'"
+		else
+			log "would write the temporary file to '$target_file'"
+		fi
 	fi
 	exit
 fi
@@ -385,7 +397,11 @@ fi
 if ! $opt_dry_run; then
 	try_as_root mv "$tmp_file" "$target_file"
 else
-	log "would try to move '$tmp_file' to '$target_file' as root"
+	if [ "$tmp_file" != '[[temporary_file]]' ]; then
+		log "would try to move '$tmp_file' to '$target_file' as root"
+	else
+		log "would try to move the temporary file to '$target_file' as root"
+	fi
 fi
 
 # endregion
