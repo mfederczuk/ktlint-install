@@ -14,6 +14,11 @@
 
 `ktlint-install` is a POSIX-compliant shellscript for downloading and installing [`ktlint`][ktlint].
 
+The script downloads a `ktlint` JAR and then replaces the existing `ktlint` program found on the `PATH` with the newly
+downloaded one.  
+If no `ktlint` program is found on the `PATH` (e.g.: it's not installed in the first place), then the default location
+for it to get installed in is `/usr/local/bin`.
+
 [ktlint]: https://github.com/pinterest/ktlint
 
 ## Usage ##
@@ -21,7 +26,7 @@
 Simply execute the script with the version name of `ktlint` that you want to install:
 
 ```sh
-ktlint-install 0.46.1
+ktlint-install 0.47.0
 ```
 
 ... or give the argument "`latest`" to install the latest release of `ktlint`.
@@ -32,8 +37,11 @@ ktlint-install latest
 
 ## Download & Installation ##
 
-Download the [`ktlint-install`](ktlint-install) file and optionally move it into a directory that is inside your
-`PATH` environment variable.
+Download and/or installation must be done manually.
+
+Simply download the [`ktlint-install`](ktlint-install) file and set the executable bit.  
+Optionally move the file into a directory that is inside your `PATH` environment variable, so that it is possible to
+execute the script from anywhere.
 
 ## Contributing ##
 
@@ -41,6 +49,8 @@ Read through the [Contribution Guidelines](CONTRIBUTING.md) if you want to contr
 
 ## License ##
 
-**ktlint Installation Script** is licensed under both the [**Mozilla Public License 2.0**](LICENSES/MPL-2.0.txt) AND the
+**ktlint-install** is licensed under both the [**Mozilla Public License 2.0**](LICENSES/MPL-2.0.txt) AND the
 [**Apache License 2.0**](LICENSES/Apache-2.0.txt).  
 For more information about copying and licensing, see the [`COPYING.txt`](COPYING.txt) file.
+
+_(note that this project is **not** affiliated with ktlint or Pinterest Inc.)_
