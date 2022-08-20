@@ -49,7 +49,7 @@ Read through the [Contribution Guidelines](CONTRIBUTING.md) if you want to contr
 
 ## License ##
 
-**ktlint Installation Script** is licensed under both the [**Mozilla Public License 2.0**](LICENSES/MPL-2.0.txt) AND the
+**ktlint-install** is licensed under both the [**Mozilla Public License 2.0**](LICENSES/MPL-2.0.txt) AND the
 [**Apache License 2.0**](LICENSES/Apache-2.0.txt).  
 For more information about copying and licensing, see the [`COPYING.txt`](COPYING.txt) file.
 
