@@ -17,7 +17,7 @@
 The script downloads a `ktlint` JAR and then replaces the existing `ktlint` program found on the `PATH` with the newly
 downloaded one.  
 If no `ktlint` program is found on the `PATH` (e.g.: it's not installed in the first place), then the default location
-for it to get installed in is `/usr/local/bin`.
+for it to get installed in is `$HOME/.local/bin` if the `$HOME/.local` directory exists, otherwise it is `/usr/local/bin`.
 
 [ktlint]: https://github.com/pinterest/ktlint
 

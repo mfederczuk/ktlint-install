@@ -335,7 +335,16 @@ if [ -e "$tmp_file" ]; then
 fi
 readonly tmp_file
 
-target_file="$(command -v ktlint || echo '/usr/local/bin/ktlint')"
+if ! target_file="$(command -v ktlint)"; then
+	if [ -n "${HOME-}" ] &&
+	   [ -d "$HOME/.local" ] &&
+	   { [ ! -e "$HOME/.local/bin" ] || [ -d "$HOME/.local/bin" ]; }; then
+
+		target_file="$HOME/.local/bin/ktlint"
+	else
+		target_file='/usr/local/bin/ktlint'
+	fi
+fi
 readonly target_file
 
 if [ -e "$target_file" ] && [ ! -f "$target_file" ]; then
