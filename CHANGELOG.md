@@ -11,21 +11,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [**Keep a Changelog v1.0.0**](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [**Semantic Versioning v2.0.0**](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased ##
+## [v0.3.0] - 2022-08-20 ##
+
+[v0.3.0]: https://github.com/mfederczuk/ktlint-install/releases/tag/v0.3.0
 
 ### Added ###
 
-* feature to download latest release by giving "`latest`" as argument
-* `--prefer-curl` and `--prefer-wget` options
+* feature to download latest release by giving "`latest`" as argument ([`88f96a7`])
+* `--prefer-curl` and `--prefer-wget` options ([`acb8907`])
 
 ### Changed ###
 
 * default installation directory is `$HOME/.local/bin` if the `$HOME/.local` directory exists, otherwise it is
-  `/usr/local/bin`
+  `/usr/local/bin` ([`1c43bcc`])
 
 ### Fixed ###
 
 * using `curl` to download wouldn't actually download anything because `curl` doesn't follow redirection by default
+  ([`e1e195f`])
+
+[`88f96a7`]: https://github.com/mfederczuk/ktlint-install/commit/88f96a79998d8b5b8f9e85a030eac55ebf64822a
+[`acb8907`]: https://github.com/mfederczuk/ktlint-install/commit/acb8907a623aa0c84be5f1f07c875020455ccd2b
+[`1c43bcc`]: https://github.com/mfederczuk/ktlint-install/commit/1c43bcc2e51fcc5362398dc009e3f7d459286a4d
+[`e1e195f`]: https://github.com/mfederczuk/ktlint-install/commit/e1e195f0c614863dda2dfc1b4b9c87c3cab0e157
 
 ## [v0.2.0] - 2022-08-03 ##
 
