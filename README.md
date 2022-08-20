@@ -37,8 +37,11 @@ ktlint-install latest
 
 ## Download & Installation ##
 
-Download the [`ktlint-install`](ktlint-install) file and optionally move it into a directory that is inside your
-`PATH` environment variable.
+Download and/or installation must be done manually.
+
+Simply download the [`ktlint-install`](ktlint-install) file and set the executable bit.  
+Optionally move the file into a directory that is inside your `PATH` environment variable, so that it is possible to
+execute the script from anywhere.
 
 ## Contributing ##
 
