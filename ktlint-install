@@ -46,10 +46,17 @@ try_as_root() {
 	fi
 }
 
+log() {
+	echo "$1" >&2
+}
+errlog() {
+	log "$(argv0): $1"
+}
+
 # region args
 
 print_usage() {
-	echo "usage: $(argv0) ( <version> | latest | --help )" >&2
+	log "usage: $(argv0) ( <version> | latest | --help )"
 }
 
 print_help() {
@@ -178,30 +185,30 @@ unset -v process_opts
 unset -f print_version_info print_help
 
 if [ -n "$first_invalid_opt" ]; then
-	echo "$(argv0): $first_invalid_opt: invalid option" >&2
+	errlog "$first_invalid_opt: invalid option"
 	print_usage
 	exit 5
 fi
 unset -v first_invalid_opt
 
 if [ "${requested_version_spec-not_set}" = 'not_set' ]; then
-	echo "$(argv0): missing argument: ( <version> | latest )" >&2
+	errlog 'missing argument: ( <version> | latest )'
 	print_usage
 	exit 3
 fi
 
 if [ -z "${requested_version_spec%exact:}" ]; then
 	if [ $excess_argc -eq 0 ]; then
-		echo "$(argv0): argument must not be empty" >&2
+		errlog 'argument must not be empty'
 	else
-		echo "$(argv0): argument 1: must not be empty" >&2
+		errlog 'argument 1: must not be empty'
 	fi
 	print_usage
 	exit 9
 fi
 
 if [ $excess_argc -gt 0 ]; then
-	echo "$(argv0): too many arguments: $excess_argc" >&2
+	errlog "too many arguments: $excess_argc"
 	print_usage
 	exit 4
 fi
@@ -212,7 +219,7 @@ unset -f print_usage
 if starts_with "$requested_version_spec" 'exact:' &&
    ! printf '%s' "${requested_version_spec#exact:}" | grep -Eq '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$'; then
 
-	echo "The version '${requested_version_spec#exact:}' doesn't seem correct (MAJOR.MINOR.PATCH)" >&2
+	log "The version '${requested_version_spec#exact:}' doesn't seem correct (MAJOR.MINOR.PATCH)"
 	printf 'Do you want to continue? [y/N] ' >&2
 
 	read -r ans
@@ -221,7 +228,7 @@ if starts_with "$requested_version_spec" 'exact:' &&
 			# continue
 			;;
 		(*)
-			echo 'Aborted.' >&2
+			log 'Aborted.'
 			exit 32
 			;;
 	esac
@@ -241,7 +248,7 @@ if command_exists curl; then available_dl_cmds="$available_dl_cmds(curl)"; fi
 readonly available_dl_cmds
 
 if [ -z "$available_dl_cmds" ]; then
-	echo "$(argv0): wget or curl missing" >&2
+	errlog 'wget or curl missing'
 	exit 48
 fi
 
@@ -282,7 +289,7 @@ elif starts_with "$requested_version_spec" 'latest:'; then
 			# ok
 			;;
 		(*)
-			echo "$(argv0): curl: program missing" >&2
+			errlog 'curl: program missing'
 			exit 27
 			;;
 	esac
@@ -291,7 +298,7 @@ elif starts_with "$requested_version_spec" 'latest:'; then
 
 	response_code="$(printf '%s' "$response" | head -n1)"
 	if ! printf '%s' "$response_code" | grep -Eq '^3[0-9][0-9]$'; then
-		echo "$(argv0): could not determine the latest ktlint version" >&2
+		errlog 'could not determine the latest ktlint version'
 		exit 49
 	fi
 	unset -v response_code
@@ -300,13 +307,13 @@ elif starts_with "$requested_version_spec" 'latest:'; then
 	version_to_install="$(printf '%s' "$location_url" | sed s%'^https://github.com/[a-zA-Z0-9_-][a-zA-Z0-9_-]*/ktlint/releases/tag/\([^/][^/]*\)$'%'\1'%)"
 
 	if [ -z "$version_to_install" ]; then
-		echo "$(argv0): could not determine the latest ktlint version" >&2
+		errlog 'could not determine the latest ktlint version'
 		exit 49
 	fi
 
 	unset -v location_url response
 else
-	echo "$(argv0): emergency stop: wrong format for 'requested_version_spec' variable: $requested_version_spec" >&2
+	errlog "emergency stop: wrong format for 'requested_version_spec' variable: $requested_version_spec"
 	exit 123
 fi
 
@@ -322,7 +329,7 @@ if [ -e "$tmp_file" ]; then
 	if ! $opt_dry_run; then
 		tmp_file="$(mktemp_portable "$tmp_file.")"
 	else
-		echo 'ktlint exists; would create a temporary file to download to' >&2
+		log 'ktlint exists; would create a temporary file to download to'
 		tmp_file='[[temporary_file]]'
 	fi
 fi
@@ -332,7 +339,7 @@ target_file="$(command -v ktlint || echo '/usr/local/bin/ktlint')"
 readonly target_file
 
 if [ -e "$target_file" ] && [ ! -f "$target_file" ]; then
-	echo "$(argv0): $target_file: not a regular file" >&2
+	errlog "$target_file: not a regular file"
 	exit 26
 fi
 
@@ -343,7 +350,7 @@ if ! $opt_dry_run; then
 	download_file "$source_url" "$tmp_file"
 	chmod +x "$tmp_file"
 else
-	echo "would use '$dl_cmd' to download '$source_url' into '$tmp_file'"
+	log "would use '$dl_cmd' to download '$source_url' into '$tmp_file'"
 fi
 
 if [ -w "$target_parent_dir" ]; then
@@ -353,7 +360,7 @@ if [ -w "$target_parent_dir" ]; then
 	if ! $opt_dry_run; then
 		mv -f "$tmp_file" "$target_file"
 	else
-		echo "would move '$tmp_file' to '$target_file'" >&2
+		log "would move '$tmp_file' to '$target_file'"
 	fi
 	exit
 fi
@@ -367,7 +374,7 @@ if [ -w "$target_file" ]; then
 	if ! $opt_dry_run; then
 		dd if="$tmp_file" of="$target_file"
 	else
-		echo "would write '$tmp_file' to '$target_file'" >&2
+		log "would write '$tmp_file' to '$target_file'"
 	fi
 	exit
 fi
@@ -378,7 +385,7 @@ fi
 if ! $opt_dry_run; then
 	try_as_root mv "$tmp_file" "$target_file"
 else
-	echo "would try to move '$tmp_file' to '$target_file' as root" >&2
+	log "would try to move '$tmp_file' to '$target_file' as root"
 fi
 
 # endregion
