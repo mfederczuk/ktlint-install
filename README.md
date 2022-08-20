@@ -14,6 +14,11 @@
 
 `ktlint-install` is a POSIX-compliant shellscript for downloading and installing [`ktlint`][ktlint].
 
+The script downloads a `ktlint` JAR and then replaces the existing `ktlint` program found on the `PATH` with the newly
+downloaded one.  
+If no `ktlint` program is found on the `PATH` (e.g.: it's not installed in the first place), then the default location
+for it to get installed in is `/usr/local/bin`.
+
 [ktlint]: https://github.com/pinterest/ktlint
 
 ## Usage ##
