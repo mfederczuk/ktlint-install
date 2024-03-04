@@ -19,6 +19,14 @@ set -o nounset
 # enabling POSIX-compliant behavior for GNU programs
 export POSIXLY_CORRECT=yes POSIX_ME_HARDER=yes
 
+if [ "${0#/}" = "$0" ]; then
+	argv0="$0"
+else
+	argv0="$(basename -- "$0" && printf x)"
+	argv0="${argv0%"$(printf '\nx')"}"
+fi
+readonly argv0
+
 command_exists() {
 	command -v "$1" > '/dev/null'
 }
@@ -27,14 +35,6 @@ starts_with() {
 	# not using `grep` because it works line-by-line; if the prefix substring ($2) would appear after a newline in the
 	# middle of the base string ($1), grep would falsely match
 	test "${1#"$2"}" != "$1"
-}
-
-argv0() {
-	if [ "${0#/}" != "$0" ]; then
-		printf '%s' "$(basename "$0")"
-	else
-		printf '%s' "$0"
-	fi
 }
 
 mktemp_portable() {
@@ -57,13 +57,13 @@ log() {
 	echo "$1" >&2
 }
 errlog() {
-	log "$(argv0): $1"
+	log "$argv0: $1"
 }
 
 # region args
 
 print_usage() {
-	log "usage: $(argv0) ( <version> | latest | --help )"
+	log "usage: $argv0 ( <version> | latest | --help )"
 }
 
 print_help() {
