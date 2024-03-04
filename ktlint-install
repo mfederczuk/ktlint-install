@@ -6,6 +6,13 @@
 # Copyright (c) 2024 Michael Federczuk
 # SPDX-License-Identifier: MPL-2.0 AND Apache-2.0
 
+case "$-" in
+	(*'i'*)
+		\command printf 'script was called interactively\n' >&2
+		return 124
+		;;
+esac
+
 set -o errexit
 set -o nounset
 
