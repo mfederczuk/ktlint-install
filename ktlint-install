@@ -6,6 +6,8 @@
 # Copyright (c) 2024 Michael Federczuk
 # SPDX-License-Identifier: MPL-2.0 AND Apache-2.0
 
+#region preamble
+
 case "$-" in
 	(*'i'*)
 		\command printf 'script was called interactively\n' >&2
@@ -26,6 +28,8 @@ else
 	argv0="${argv0%"$(printf '\nx')"}"
 fi
 readonly argv0
+
+#endregion
 
 command_exists() {
 	command -v "$1" > '/dev/null'
