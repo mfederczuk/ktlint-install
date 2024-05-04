@@ -58,7 +58,7 @@ try_as_root() {
 }
 
 log() {
-	echo "$1" >&2
+	printf '%s\n' "$1" >&2
 }
 errlog() {
 	log "$argv0: $1"
