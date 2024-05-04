@@ -1,0 +1,113 @@
+#!/bin/sh
+# -*- sh -*-
+# vim: syntax=sh
+# code: language=shellscript
+
+# Copyright (c) 2024 Michael Federczuk
+# SPDX-License-Identifier: MPL-2.0 AND Apache-2.0
+
+#region preamble
+
+case "$-" in
+	(*'i'*)
+		\command printf 'script was called interactively\n' >&2
+		return 124
+		;;
+esac
+
+set -o errexit
+set -o nounset
+
+# enabling POSIX-compliant behavior for GNU programs
+export POSIXLY_CORRECT=yes POSIX_ME_HARDER=yes
+
+if [ "${0#/}" = "$0" ]; then
+	argv0="$0"
+else
+	argv0="$(basename -- "$0" && printf x)"
+	argv0="${argv0%"$(printf '\nx')"}"
+fi
+readonly argv0
+
+#endregion
+
+is_absolute_path() {
+	test "${1#/}" != "$1"
+}
+
+mkdirp_parent() {
+	set -- "$(dirname -- "$1" && printf x)" || return
+	set -- "${1%"$(printf '\nx')"}" || return
+	mkdir -p -- "$1"
+}
+
+#region state directory
+
+base_state_dir_pathname="${XDG_STATE_HOME-}"
+
+if ! is_absolute_path "$base_state_dir_pathname"; then
+	# Per the XDG Base Directory Specification, non-absolute pathnames must be ignored.
+	# > All paths set in these environment variables must be absolute. If an implementation encounters a relative path
+	# > in any of these variables it should consider the path invalid and ignore it.
+	# <https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html>
+	base_state_dir_pathname=''
+fi
+
+if [ -z "$base_state_dir_pathname" ]; then
+	if [ -z "${HOME-}" ]; then
+		:
+	fi
+
+	if ! is_absolute_path "$HOME"; then
+		:
+	fi
+
+	# TODO: check if the environmental variable $HOME is absolute
+	base_state_dir_pathname="$HOME/.local/state"
+fi
+
+readonly base_state_dir_pathname
+
+
+state_dir_pathname="$base_state_dir_pathname/ktlint-install-wrapper"
+readonly state_dir_pathname
+
+#endregion
+
+latest_update_check_date_file_pathname="$state_dir_pathname/latest_update_check"
+readonly latest_update_check_date_file_pathname
+
+if [ ! -e "$latest_update_check_date_file_pathname" ]; then
+	: # TODO: do update check
+fi
+
+check_update() {
+	# Saving the response to $1
+	set -- "$(curl -sSX HEAD -w '%{http_code}\n%{redirect_url}' 'https://github.com/pinterest/ktlint/releases/latest')" ||
+		return
+
+	# Extracing the HTTP response status code from $1 and saving it to $2
+	set -- "$1" "$(printf '%s' "$1" | head -n1)" || return
+	if ! printf '%s' "$2" | grep -Eq '^3[0-9][0-9]$'; then
+		return 48
+	fi
+	set -- "$1"
+
+	# Extracting the redirect URL from $1 and saving it back to $1
+	set -- "$(printf '%s' "$1" | tail -n1)" || return
+
+	# Extracting the redirected version
+	set -- "$(printf '%s' "$1" | sed s%'^https://github.com/[a-zA-Z0-9_-][a-zA-Z0-9_-]*/ktlint/releases/tag/\([^/][^/]*\)$'%'\1'%)" ||
+		return
+
+	if [ -z "$1" ]; then
+		return 48
+	fi
+
+	# TODO
+
+	mkdirp_parent "$latest_update_check_date_file_pathname" || return
+	date -u +'%Y %J' > "$latest_update_check_date_file_pathname"
+}
+
+exec ktlint "$@"
