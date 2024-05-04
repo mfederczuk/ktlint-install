@@ -1,16 +1,35 @@
 #!/bin/sh
 # -*- sh -*-
-# vim: set syntax=sh
+# vim: syntax=sh
 # code: language=shellscript
 
-# Copyright (c) 2022 Michael Federczuk
+# Copyright (c) 2024 Michael Federczuk
 # SPDX-License-Identifier: MPL-2.0 AND Apache-2.0
+
+#region preamble
+
+case "$-" in
+	(*'i'*)
+		\command printf 'script was called interactively\n' >&2
+		return 124
+		;;
+esac
 
 set -o errexit
 set -o nounset
 
 # enabling POSIX-compliant behavior for GNU programs
 export POSIXLY_CORRECT=yes POSIX_ME_HARDER=yes
+
+if [ "${0#/}" = "$0" ]; then
+	argv0="$0"
+else
+	argv0="$(basename -- "$0" && printf x)"
+	argv0="${argv0%"$(printf '\nx')"}"
+fi
+readonly argv0
+
+#endregion
 
 command_exists() {
 	command -v "$1" > '/dev/null'
@@ -20,14 +39,6 @@ starts_with() {
 	# not using `grep` because it works line-by-line; if the prefix substring ($2) would appear after a newline in the
 	# middle of the base string ($1), grep would falsely match
 	test "${1#"$2"}" != "$1"
-}
-
-argv0() {
-	if [ "${0#/}" != "$0" ]; then
-		printf '%s' "$(basename "$0")"
-	else
-		printf '%s' "$0"
-	fi
 }
 
 mktemp_portable() {
@@ -47,49 +58,45 @@ try_as_root() {
 }
 
 log() {
-	echo "$1" >&2
+	printf '%s\n' "$1" >&2
 }
 errlog() {
-	log "$(argv0): $1"
+	log "$argv0: $1"
 }
 
 # region args
 
 print_usage() {
-	log "usage: $(argv0) ( <version> | latest | --help )"
+	printf 'usage: %s ( <version> | latest | --help )\n' "$argv0"
 }
 
 print_help() {
 	print_usage
-	{
-		echo '    Downloads & installs ktlint onto the system.'
-		echo
-		echo '    Options:'
-		echo "          --dry-run      don't download and install anything"
-		echo '          --prefer-curl  prefer using curl as downloading command'
-		echo '          --prefer-wget  prefer using Wget as downloading command (default)'
-		echo '      -h, --help         display this summary and exit'
-		echo '      -V, --version      display version and legal information and exit'
-		echo
-		echo "GitHub repository: <https://github.com/mfederczuk/ktlint-install>"
-	} >&2
+	printf '    Downloads & installs ktlint onto the system.\n'
+	printf '\n'
+	printf '    Options:\n'
+	printf "          --dry-run      don't download and install anything\\n"
+	printf '          --prefer-curl  prefer using curl as downloading command\n'
+	printf '          --prefer-wget  prefer using Wget as downloading command (default)\n'
+	printf '      -h, --help         display this summary and exit\n'
+	printf '      -V, --version      display version and legal information and exit\n'
+	printf '\n'
+	printf 'GitHub repository: <https://github.com/mfederczuk/ktlint-install>\n'
 }
 
 print_version_info() {
-	{
-		echo 'ktlint-install 0.3.0'
-		echo
-		echo 'Copyright (C) 2022 Michael Federczuk'
-		echo
-		echo '    License MPL-2.0: Mozilla Public License 2.0 <https://www.mozilla.org/en-US/MPL/2.0/>'
-		echo '            AND'
-		echo '    License Apache-2.0: Apache License 2.0 <https://www.apache.org/licenses/LICENSE-2.0>'
-		echo
-		echo 'This is free software: you are free to change and redistribute it.'
-		echo 'There is NO WARRANTY, to the extent permitted by law.'
-		echo
-		echo 'Written by Michael Federczuk.'
-	} >&2
+	printf 'ktlint-install 0.3.0\n'
+	printf '\n'
+	printf 'Copyright (C) 2022 Michael Federczuk\n'
+	printf '\n'
+	printf '    License MPL-2.0: Mozilla Public License 2.0 <https://www.mozilla.org/en-US/MPL/2.0/>\n'
+	printf '            AND\n'
+	printf '    License Apache-2.0: Apache License 2.0 <https://www.apache.org/licenses/LICENSE-2.0>\n'
+	printf '\n'
+	printf 'This is free software: you are free to change and redistribute it.\n'
+	printf 'There is NO WARRANTY, to the extent permitted by law.\n'
+	printf '\n'
+	printf 'Written by Michael Federczuk.\n'
 }
 
 opt_dry_run=false
@@ -186,14 +193,14 @@ unset -f print_version_info print_help
 
 if [ -n "$first_invalid_opt" ]; then
 	errlog "$first_invalid_opt: invalid option"
-	print_usage
+	print_usage >&2
 	exit 5
 fi
 unset -v first_invalid_opt
 
 if [ "${requested_version_spec-not_set}" = 'not_set' ]; then
 	errlog 'missing argument: ( <version> | latest )'
-	print_usage
+	print_usage >&2
 	exit 3
 fi
 
@@ -203,13 +210,13 @@ if [ -z "${requested_version_spec%exact:}" ]; then
 	else
 		errlog 'argument 1: must not be empty'
 	fi
-	print_usage
+	print_usage >&2
 	exit 9
 fi
 
 if [ $excess_argc -gt 0 ]; then
 	errlog "too many arguments: $excess_argc"
-	print_usage
+	print_usage >&2
 	exit 4
 fi
 
